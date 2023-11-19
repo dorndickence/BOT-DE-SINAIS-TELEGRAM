@@ -1,390 +1,275 @@
-const TelegramBot = require('node-telegram-bot-api');
-const {Sequelize,DataTypes} = require('sequelize');
-const nodeSchedule = require('node-schedule')
-const fs = require('fs')
-const date = require('dayjs')
 
-// Carrega as Credenciais para Autenticação nas plataformas
-require('dotenv').config()
+const TelegramBot = require('node-telegram-bot-api');
+const { Sequelize, DataTypes } = require('sequelize');
+const nodeSchedule = require('node-schedule');
+const fs = require('fs');
+const date = require('dayjs');
+
+// Load credentials for authentication on platforms
+require('dotenv').config();
 
 //////////////////////////////////////////////////////////////////////
-const token =  process.env.tokenGratis 
+const token = process.env.tokenGratis;
 
-const chatId = process.env.CHANNEL_GRATIS // Id do chat Grupo Gratis
+const chatId = process.env.CHANNEL_GRATIS; // Id of the Free Group chat
 
 const sequelize = new Sequelize(
-    
     process.env.DATABASE_BASE,
     process.env.DATABASE_USER,
     process.env.DATABASE_PASSWORD,
     {
-      host: process.env.DATABASE_HOST,
-      dialect: 'mysql',
-      logging: false
+        host: process.env.DATABASE_HOST,
+        dialect: 'mysql',
+        logging: false
     }
 );
 
-sequelize.authenticate().then(() => {
-console.log('Connection with database has been established successfully.');
-}).catch((error) => {
-console.error('Unable to connect to the database: ', error);
-});
- 
-//DEFININDO OS SCHEMAS
-const tb_resultados = sequelize.define("tb_resultados", {
+sequelize
+    .authenticate()
+    .then(() => {
+        console.log('Connection with the database has been established successfully.');
+    })
+    .catch((error) => {
+        console.error('Unable to connect to the database: ', error);
+    });
+
+// DEFINING THE SCHEMAS
+const tb_resultados = sequelize.define('tb_resultados', {
     id: {
         type: Sequelize.INTEGER,
         autoIncrement: true,
         primaryKey: true
     },
     multiplicador: {
-      type: DataTypes.STRING,
-      allowNull: false
+        type: DataTypes.STRING,
+        allowNull: false
     },
     alto_baixo: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false
+        type: DataTypes.BOOLEAN,
+        allowNull: false
     },
     data_entrada: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    horario_entrada:{
+    horario_entrada: {
         type: DataTypes.STRING,
         allowNull: false
     }
-  
 });
 
+const bot = new TelegramBot(token, { polling: true });
 
-const bot = new TelegramBot(token, {polling: true});
-
-
-bot.on('polling_error',async(error)=>{
-   
-    console.log ("Mensagem capturada erro Telegram: "+error.message)
-    if(bot.isPolling()){
-        console.log('Conectado ao telegram')
-    
-        await bot.stopPolling()
-      }
-
-      await bot.startPolling({restart:true})
+bot.on('polling_error', async (error) => {
+    console.log('Captured Telegram polling error: ' + error.message);
+    if (bot.isPolling()) {
+        console.log('Connected to Telegram');
+        await bot.stopPolling();
+    }
+    await bot.startPolling({ restart: true });
 });
 
-//define a quantidade de sinais por horario
+// define the quantity of signals per time
 const QTDSINAIS = 1;
 
-//Define quantas rodadas que aguarda até ser liberado para analisar outro green 
+// Define how many rounds to wait until being released to analyze another green
 const RODADAS_REDALERT = 6;
 
-// Lista de elementos que serão atualizados no momento
-let analiser1= [];
-let analiser2= [];
+// List of elements to be updated at the moment
+let analiser1 = [];
+let analiser2 = [];
 
-// Serviço de leitura da base de dados
+// Database reading service
 let findElementService = null;
 
-// Quantidade de greens que já foi feito
-let greenStatus =0;
+// Number of greens that have already been made
+let greenStatus = 0;
 let rodadas = 0;
 
-// Ativo ou não o alerta de red
+// Whether to activate the red alert or not
 let redAlert = false;
 
-// Identifica quais são os sinais ativos no momento
+// Identifies which signals are active at the moment
 let sinalAtivo = {
-    sinal1:true,
-    sinal2:false,
-}
+    sinal1: true,
+    sinal2: false
+};
+// Receives the Telegram object for signal message 1
+let sinalMessage;
+let betMessage;
 
-// Recebe o objeto do telegram referente a mensagem de sinal 1
-let sinalMessage
-let betMessage
+// Receives the Telegram object for signal message 2
+let sinalMessage2;
+let betMessage2;
 
-// Recebe o objeto do telegram referente a mensagem de sinal 2
-let sinalMessage2
-let betMessage2
+// Indicates whether the bot is started or not
+let isStart = true;
 
-// Indica se o bot está iniciado ou não
-let isStart = true
-
-
-bot.onText(/\/start/,async(msg,match)=>{
-    if(!isStart){
-        console.log('Bot Iniciado...')
-        isStart = true; 
-        console.log('Grupo Gratuito: '+ chatId)
-        bot.sendMessage(msg.chat.id,'🤖 BOT ESTÁ LIGADO !🟢') 
-        bot.sendMessage(chatId,'🤖 BOT ESTÁ LIGADO !🟢')
-        let sns = quaisSinaisAtivos(sinalAtivo)
-        bot.sendMessage(msg.chat.id,sns,{parse_mode:'HTML'})
-       capturaElementos() 
-    }else{
-        
-        bot.sendMessage(msg.chat.id,'🤖 BOT JÁ ESTÁ LIGADO !🟢')  
+bot.onText(/\/start/, async (msg, match) => {
+    if (!isStart) {
+        console.log('Bot started...');
+        isStart = true;
+        console.log('Free Group: ' + chatId);
+        bot.sendMessage(msg.chat.id, '🤖 BOT IS ON!🟢');
+        bot.sendMessage(chatId, '🤖 BOT IS ON!🟢');
+        let activeSignals = whichSignalsActive(sinalAtivo);
+        bot.sendMessage(msg.chat.id, activeSignals, { parse_mode: 'HTML' });
+        captureElements();
+    } else {
+        bot.sendMessage(msg.chat.id, '🤖 BOT IS ALREADY ON!🟢');
     }
-    
-})
-
-bot.onText(/\/stats/,async(msg,match)=>{
-   
-    let m = await botStats()
-    let enviado = await bot.sendMessage(chatId,m,{parse_mode:'HTML'})
-    bot.pinChatMessage(chatId,enviado.message_id)
-       
-   
-    
-})
-
-// ultimo resultado lido da base(Utilizado na função capturaElementos() )
-let ultimo_resultado;
-async function capturaElementos(){
-
-    try {
-        findElementService  =  setInterval (async ()  => {
-            let atual = await findLastElement()
-            if(ultimo_resultado != atual){
-                ultimo_resultado = atual
-                senderSignal(atual)
-            }
-            
-         }, 300);
-    } catch (error) {
-        console.log('ERRO CAPTURA ELEMENTOS: '+error)
-        capturaElementos()
-    }
-   
-}
-
-//Rotina pra iniciar o bot
-nodeSchedule.scheduleJob('0 00 12 * * ?', async() => { 
-    if(!isStart){
-        console.log('Inicio das 12:00h')
-        bot.sendMessage(chatId,'🤖 BOT ESTÁ LIGADO !🟢') 
-        capturaElementos() 
-    }
-   
 });
 
+bot.onText(/\/stats/, async (msg, match) => {
+    let m = await botStats();
+    let sent = await bot.sendMessage(chatId, m, { parse_mode: 'HTML' });
+    bot.pinChatMessage(chatId, sent.message_id);
+});
 
-async function senderSignal(valor){
-    let tester = valor;
-    console.log(tester)
-   
-    if(greenStatus>=QTDSINAIS){
-        console.log('Stop Bot....: '+greenStatus)
-        greenStatus=0;
-        stopBot()
+// Last read result from the database (Used in the captureElements function)
+let lastResult;
+
+async function captureElements() {
+    try {
+        findElementService = setInterval(async () => {
+            let current = await findLastElement();
+            if (lastResult !== current) {
+                lastResult = current;
+                senderSignal(current);
+            }
+        }, 300);
+    } catch (error) {
+        console.log('ERROR CAPTURING ELEMENTS: ' + error);
+        captureElements();
+    }
+}
+
+// Routine to start the bot
+nodeSchedule.scheduleJob('0 00 12 * * ?', async () => {
+    if (!isStart) {
+        console.log('12:00h Start');
+        bot.sendMessage(chatId, '🤖 BOT IS ON!🟢');
+        captureElements();
+    }
+});
+
+async function senderSignal(value) {
+    let tester = value;
+    console.log(tester);
+
+    if (greenStatus >= QTDSINAIS) {
+        console.log('Stop Bot....: ' + greenStatus);
+        greenStatus = 0;
+        stopBot();
     }
 
-    if (redAlert && rodadas < RODADAS_REDALERT){
-        console.log('RED ALERT ATIVO : '+rodadas)
-        rodadas=rodadas+1
-    }else if (redAlert && rodadas == RODADAS_REDALERT){
-        console.log('RED ALERT DESLIGADO!')
-        redAlert=false;
-        rodadas=0;
+    if (redAlert && rodadas < RODADAS_REDALERT) {
+        console.log('RED ALERT ACTIVE: ' + rodadas);
+        rodadas = rodadas + 1;
+    } else if (redAlert && rodadas === RODADAS_REDALERT) {
+        console.log('RED ALERT OFF!');
+        redAlert = false;
+        rodadas = 0;
     }
 
-    if(sinalAtivo.sinal1 && !redAlert){
-        analiser1.push(tester)
-        sinal1()
+    if (sinalAtivo.sinal1 && !redAlert) {
+        analiser1.push(tester);
+        sinal1();
     }
 
-    if(sinalAtivo.sinal2 && !redAlert){
-        analiser2.push(tester)
-        sinal2()
+    if (sinalAtivo.sinal2 && !redAlert) {
+        analiser2.push(tester);
+        sinal2();
     }
+}
     
-//[PADRÃO SINAL 2]
+//[SIGNAL PATTERN 2]
 /*
-1° Baixo
-2° Baixo -> Analisa
-3° Baixo -> Entrada
-4° Alto -> Green ou Gale
-5° Alto -> Green ou Gale
-6° Alto -> Green ou Red
+1° Low
+2° Low -> Analyze
+3° Low -> Entry
+4° High -> Green or Gale
+5° High -> Green or Gale
+6° High -> Green or Red
 */
 
-   async function sinal1(){
-        if(analiser1.length === 2){
-            if((analiser1[0]  < 2.00) &&  (analiser1[1]<2.00)){//BAIXO
-                console.log('Analisando Sinal 1...')
-                console.log(analiser1)
-                sinalMessage = await telegramsendAnalise()
-                return true;  
-            }else{
-                console.log('---------------------------------------')
-                console.log('Padrão 1 não encontrado')
-                console.log('---------------------------------------')
-                analiser1 = analiserClear(analiser1,1) 
-                return true
-            }
-        }else if(analiser1.length === 3){
-            if(analiser1[2] < 2.00){//BAIXO
-                console.log('Entrar aposta: Sair em 1.50x')                        
-                await bot.deleteMessage(chatId,sinalMessage.message_id)
-                betMessage = await telegramsendBet (analiser1[analiser1.length-1],'1.50')
-                console.log(analiser1)
-                return true;  
-            }else{
-                await bot.deleteMessage(chatId,sinalMessage.message_id)
-                console.log('---------------------------------------')
-                console.log('Padrão 1 não encontrado')
-                console.log('---------------------------------------')
-                analiser1= analiserClear(analiser1,analiser1.length-1)
-                return true;      
-            }
-        }else if(analiser1.length === 4){
-           if(analiser1[3] > 1.50){
-                await bot.deleteMessage(chatId,betMessage.message_id)
-                await telegrambetend('1.50X')
-                await telegramsendGreen(analiser1[analiser1.length-1]+'X','Sinal 1') 
-                console.log("Green 1 (SINAL1) ....")
-                analiser1= analiserClear(analiser1,analiser1.length-1)   
-                console.log(analiser1)
-                return true;
-           }else{
-                console.log('GALE 1 (SINAL1)')
-                return true;
-           }
-        }else if(analiser1.length === 5){
-            if(analiser1[analiser1.length-1] > 1.50){
-                 await bot.deleteMessage(chatId,betMessage.message_id)
-                 await telegrambetend('1.50X')
-                 await telegramsendGreen([analiser1[analiser1.length-2]+'X',analiser1[analiser1.length-1]+'X'],'Sinal 1') 
-                 console.log("Green 2(SINAL1)....")
-                 analiser1 = analiserClear(analiser1, analiser1.length-1)   
-                 console.log(analiser1)
-                 return true;
-            }else{
-                 console.log('GALE 2 (SINAL1)')
-                 return true;
-            }
-        }if(analiser1.length === 6){
-            let resultadoFinal = [analiser1[analiser1.length-3]+'X',analiser1[analiser1.length-2]+'X',analiser1[analiser1.length-1]+'X']
-            if(analiser1[analiser1.length-1] > 1.50){
-                await bot.deleteMessage(chatId,betMessage.message_id)
-                await telegrambetend('1.50X')
-                await telegramsendGreen(resultadoFinal,'Sinal 1') 
-                console.log("Green 3 (SINAL1) ....")
-                analiser1= analiserClear(analiser1,analiser1.length-1) 
-                console.log(analiser1)
-                return true;
-           }else{
-                await bot.deleteMessage(chatId,betMessage.message_id)
-                await telegrambetend('1.50X')
-                await telegramsendRed(resultadoFinal,'Sinal 1')  
-                console.log("RED ...")
-                redAlert = true;
-                analiser1 = analiserClear(analiser1,analiser1.length) 
-                console.log(analiser1)
-                return true;
-            }
-          
-        }
-   }
-
-//[PADRÃO SINAL 2]
-/*      
- 1° Alto
- 2° Baixo
- 3° Baixo
- 4° Alto
- 5° Baixo <- Analisa
- 6° Baixo <- Entrada
- 7° Alto <- Green ou Gale
- 8° Alto <- Green ou Gale
- 9° Alto <- Green ou Red
-*/
-   async function sinal2(){
-    if(analiser2.length === 5){
-                 //Alto                      baixo               baixo                   alto                    baixo
-        if((analiser2[0] > 2.00) && (analiser2[1]<2.00) && (analiser2[2]<2.00) && (analiser2[3]>2.00) && (analiser2[4]<2.00) && (analiser1.length<3) ){ //Padrão para analise
-            console.log('Analisando Sinal 2...')
-            console.log(analiser2)
-            sinalMessage2 = await telegramsendAnalise()
-            analiser1=[]
-            sinalAtivo.sinal1=false
-            return true;  
-        }else{
+async function signal1() {
+    if (analyzer1.length === 2) {
+        if ((analyzer1[0] < 2.00) && (analyzer1[1] < 2.00)) { // Low
+            console.log('Analyzing Signal 1...')
+            console.log(analyzer1)
+            signalMessage = await telegramsendAnalysis()
+            return true;
+        } else {
             console.log('---------------------------------------')
-            console.log('Padrão 2 não encontrado')
+            console.log('Pattern 1 not found')
             console.log('---------------------------------------')
-            analiser2 = analiserClear(analiser2,2) 
-            sinalAtivo.sinal1=true
+            analyzer1 = clearAnalyzer(analyzer1, 1)
             return true
         }
-    }else if(analiser2.length === 6){
-        if(analiser2[analiser2.length-1] < 2.00){//Baixo
-            console.log('Entrar aposta: Sair em 2.00x')                        
-            await bot.deleteMessage(chatId,sinalMessage2.message_id)
-            betMessage2 = await telegramsendBet (analiser2[analiser2.length-1],'2.00')
-            console.log(analiser2)
-            return true;  
-        }else{
-            await bot.deleteMessage(chatId,sinalMessage2.message_id)
+    } else if (analyzer1.length === 3) {
+        if (analyzer1[2] < 2.00) { // Low
+            console.log('Enter bet: Exit at 1.50x')
+            await bot.deleteMessage(chatId, signalMessage.message_id)
+            betMessage = await telegramsendBet(analyzer1[analyzer1.length - 1], '1.50')
+            console.log(analyzer1)
+            return true;
+        } else {
+            await bot.deleteMessage(chatId, signalMessage.message_id)
             console.log('---------------------------------------')
-            console.log('Padrão 2 não encontrado')
+            console.log('Pattern 1 not found')
             console.log('---------------------------------------')
-            analiser2= analiserClear(analiser2, 3)
-            sinalAtivo.sinal1=true
-            return true;      
+            analyzer1 = clearAnalyzer(analyzer1, analyzer1.length - 1)
+            return true;
         }
-    }else if(analiser2.length === 7){
-       if(analiser2[analiser2.length-1] > 2.00){ // Alto
-            await bot.deleteMessage(chatId,betMessage2.message_id)
-            await telegrambetend('2.00X')
-            await telegramsendGreen(analiser2[analiser2.length-1]+'X','Sinal 2') 
-            console.log("Green (SINAL2) 1 ....")
-            analiser2= analiserClear(analiser2,4)   
-            sinalAtivo.sinal1=true
-            console.log(analiser2)
+    } else if (analyzer1.length === 4) {
+        if (analyzer1[3] > 1.50) {
+            await bot.deleteMessage(chatId, betMessage.message_id)
+            await telegrambetend('1.50X')
+            await telegramsendGreen(analyzer1[analyzer1.length - 1] + 'X', 'Signal 1')
+            console.log("Green 1 (SIGNAL1) ....")
+            analyzer1 = clearAnalyzer(analyzer1, analyzer1.length - 1)
+            console.log(analyzer1)
             return true;
-       }else{
-            console.log('GALE 1 (SINAL2)')
+        } else {
+            console.log('GALE 1 (SIGNAL1)')
             return true;
-       }
-    }else if(analiser2.length === 8){
-        if(analiser2[analiser2.length-1] > 2.00){
-             await bot.deleteMessage(chatId,betMessage2.message_id)
-             await telegrambetend('2.00X')
-             await telegramsendGreen([analiser2[analiser2.length-2]+'X',analiser2[analiser2.length-1]+'X'],'Sinal 2') 
-             console.log("Green 2 (SINAL2)....")
-             analiser2 = analiserClear(analiser2, 5)   
-             console.log(analiser2)
-             sinalAtivo.sinal1=true
-             return true;
-        }else{
-             console.log('GALE 2 (SINAL2)')
-             return true;
         }
-    }if(analiser2.length === 9){
-        sinalAtivo.sinal1=true
-        let resultadoFinal2 = [analiser2[analiser2.length-3]+'X',analiser2[analiser2.length-2]+'X',analiser2[analiser2.length-1]+'X']
-        if(analiser2[analiser2.length-1] > 2.00){
-            await bot.deleteMessage(chatId,betMessage2.message_id)
-            await telegrambetend('2.00X')
-            await telegramsendGreen(resultadoFinal2,'Sinal 2') 
-            console.log("Green 3 (SINAL2)....")
-            analiser2= analiserClear(analiser2,6) 
-            console.log(analiser2)
+    } else if (analyzer1.length === 5) {
+        if (analyzer1[analyzer1.length - 1] > 1.50) {
+            await bot.deleteMessage(chatId, betMessage.message_id)
+            await telegrambetend('1.50X')
+            await telegramsendGreen([analyzer1[analyzer1.length - 2] + 'X', analyzer1[analyzer1.length - 1] + 'X'], 'Signal 1')
+            console.log("Green 2 (SIGNAL1)....")
+            analyzer1 = clearAnalyzer(analyzer1, analyzer1.length - 1)
+            console.log(analyzer1)
             return true;
-       }else{
-            await bot.deleteMessage(chatId,betMessage2.message_id)
-            await telegrambetend('2.00X')
-            await telegramsendRed(resultadoFinal2,'Sinal 2')  
-            console.log("RED (SINAL2)...")
+        } else {
+            console.log('GALE 2 (SIGNAL1)')
+            return true;
+        }
+    } if (analyzer1.length === 6) {
+        let finalResult = [analyzer1[analyzer1.length - 3] + 'X', analyzer1[analyzer1.length - 2] + 'X', analyzer1[analyzer1.length - 1] + 'X']
+        if (analyzer1[analyzer1.length - 1] > 1.50) {
+            await bot.deleteMessage(chatId, betMessage.message_id)
+            await telegrambetend('1.50X')
+            await telegramsendGreen(finalResult, 'Signal 1')
+            console.log("Green 3 (SIGNAL1) ....")
+            analyzer1 = clearAnalyzer(analyzer1, analyzer1.length - 1)
+            console.log(analyzer1)
+            return true;
+        } else {
+            await bot.deleteMessage(chatId, betMessage.message_id)
+            await telegrambetend('1.50X')
+            await telegramsendRed(finalResult, 'Signal 1')
+            console.log("RED ...")
             redAlert = true;
-            analiser2 = analiserClear(analiser2,6) 
-            console.log(analiser2)
+            analyzer1 = clearAnalyzer(analyzer1, analyzer1.length)
+            console.log(analyzer1)
             return true;
         }
-      
-    }
-   }
 
+    }
 }
 
 //Para o bot
