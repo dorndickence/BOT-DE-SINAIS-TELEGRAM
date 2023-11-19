@@ -272,6 +272,106 @@ async function signal1() {
     }
 }
 
+//[SIGNAL PATTERN 2]
+/*      
+ 1° High
+ 2° Low
+ 3° Low
+ 4° High
+ 5° Low <- Analyze
+ 6° Low <- Entry
+ 7° High <- Green or Gale
+ 8° High <- Green or Gale
+ 9° High <- Green or Red
+*/
+async function signal2() {
+    if (analyzer2.length === 5) {
+        // High                      Low               Low                   High                    Low
+        if ((analyzer2[0] > 2.00) && (analyzer2[1] < 2.00) && (analyzer2[2] < 2.00) && (analyzer2[3] > 2.00) && (analyzer2[4] < 2.00) && (analyzer1.length < 3)) { //Pattern for analysis
+            console.log('Analyzing Signal 2...')
+            console.log(analyzer2)
+            signalMessage2 = await telegramsendAnalysis()
+            analyzer1 = []
+            signalActive.signal1 = false
+            return true;
+        } else {
+            console.log('---------------------------------------')
+            console.log('Pattern 2 not found')
+            console.log('---------------------------------------')
+            analyzer2 = clearAnalyzer(analyzer2, 2)
+            signalActive.signal1 = true
+            return true;
+        }
+    } else if (analyzer2.length === 6) {
+        if (analyzer2[analyzer2.length - 1] < 2.00) { // Low
+            console.log('Enter bet: Exit at 2.00x')
+            await bot.deleteMessage(chatId, signalMessage2.message_id)
+            betMessage2 = await telegramsendBet(analyzer2[analyzer2.length - 1], '2.00')
+            console.log(analyzer2)
+            return true;
+        } else {
+            await bot.deleteMessage(chatId, signalMessage2.message_id)
+            console.log('---------------------------------------')
+            console.log('Pattern 2 not found')
+            console.log('---------------------------------------')
+            analyzer2 = clearAnalyzer(analyzer2, 3)
+            signalActive.signal1 = true
+            return true;
+        }
+    } else if (analyzer2.length === 7) {
+        if (analyzer2[analyzer2.length - 1] > 2.00) { // High
+            await bot.deleteMessage(chatId, betMessage2.message_id)
+            await telegrambetend('2.00X')
+            await telegramsendGreen(analyzer2[analyzer2.length - 1] + 'X', 'Signal 2')
+            console.log("Green (SIGNAL2) 1 ....")
+            analyzer2 = clearAnalyzer(analyzer2, 4)
+            signalActive.signal1 = true
+            console.log(analyzer2)
+            return true;
+        } else {
+            console.log('GALE 1 (SIGNAL2)')
+            return true;
+        }
+    } else if (analyzer2.length === 8) {
+        if (analyzer2[analyzer2.length - 1] > 2.00) {
+            await bot.deleteMessage(chatId, betMessage2.message_id)
+            await telegrambetend('2.00X')
+            await telegramsendGreen([analyzer2[analyzer2.length - 2] + 'X', analyzer2[analyzer2.length - 1] + 'X'], 'Signal 2')
+            console.log("Green 2 (SIGNAL2)....")
+            analyzer2 = clearAnalyzer(analyzer2, 5)
+            console.log(analyzer2)
+            signalActive.signal1 = true
+            return true;
+        } else {
+            console.log('GALE 2 (SIGNAL2)')
+            return true;
+        }
+    } if (analyzer2.length === 9) {
+        signalActive.signal1 = true
+        let finalResult2 = [analyzer2[analyzer2.length - 3] + 'X', analyzer2[analyzer2.length - 2] + 'X', analyzer2[analyzer2.length - 1] + 'X']
+        if (analyzer2[analyzer2.length - 1] > 2.00) {
+            await bot.deleteMessage(chatId, betMessage2.message_id)
+            await telegrambetend('2.00X')
+            await telegramsendGreen(finalResult2, 'Signal 2')
+            console.log("Green 3 (SIGNAL2)....")
+            analyzer2 = clearAnalyzer(analyzer2, 6)
+            console.log(analyzer2)
+            return true;
+        } else {
+            await bot.deleteMessage(chatId, betMessage2.message_id)
+            await telegrambetend('2.00X')
+            await telegramsendRed(finalResult2, 'Signal 2')
+           console.log("RED (SIGNAL2)...")
+            redAlert = true;
+            analyzer2 = clearAnalyzer(analyzer2, 6)
+            console.log(analyzer2)
+            return true;
+        }
+      
+    }
+}
+
+
 //Para o bot
 function stopBot(){
 
