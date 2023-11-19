@@ -561,13 +561,15 @@ async function botStats() {
     porcentagem = (greens * 100) / total;
     let msg = `🤖<b>Bot Statistics</b>🤖
     ` +
-        now.format("DD/MM") + `-` + now.format("HH:mm") + `
+        now.format("DD/MM")+ `-` +now.format("HH:mm") + `
 TOTAL BETS: ` + total + `
 RESULTS: ` + greens + ` GREEN✅ x ` + reds + ` RED🔴
-SUCCESS RATE: ` + porcentagem.toFixed(2) + `%`;
+SUCCESS RATE: ` + porcentagem.toFixed(2) + `%`
 
-    return msg;
+    return msg
 }
+
+
 
 // Removes X number of elements from the beginning of the queue
 function analiserClear(array, pos) {
