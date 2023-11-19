@@ -432,114 +432,110 @@ async function sinal1() {
 
 
 
-//Para o bot
+//For the bot
 function stopBot(){
+    bot.sendMessage(chatId,'🤖 BOT HAS BEEN STOPPED 🔴')
+    bot.sendMessage(chatId,'🤖 ACTIVE ONLY IN THE ACTIVE VIP GROUP, WHERE THERE ARE OVER 150 SIGNALS PER DAY 🟩')
 
-      
-    bot.sendMessage(chatId,'🤖 BOT FOI PARADO 🔴')
-    bot.sendMessage(chatId,'🤖 ATIVO APENAS NO GRUPO VIP ATIVO LÁ TEM MAIS DE 150 SINAIS POR DIA🟩')
-
-    let mensagem = `🤖 PRÓXIMO SINAL SÓ AMANHA AS 12H
-🚨Horário de Brasília🚨
-CASO QUEIRA OBETER O GRUPO VITALÍCIO COM +200 SINAIS DIÁRIOS, GRUPO VIP🚨⬇️
+    let mensagem = `🤖 NEXT SIGNAL ONLY TOMORROW AT 12 PM
+🚨Brasília Time🚨
+IF YOU WANT TO GET THE LIFETIME GROUP WITH +200 DAILY SIGNALS, VIP GROUP🚨⬇️
 https://autopilot.kpages.online/autopilot
-Cupom: ALUNOS`
-    bot.sendMessage(chatId,mensagem)    
+Coupon: ALUNOS`
+    bot.sendMessage(chatId,mensagem)
 
     clearInterval(findElementService)
-    isStart= false
-    analiser1= []
+    isStart = false
+    analiser1 = []
 }    
 
-// Acessa a base de dados para consultar o ultimo elemento adicionado
-async function findLastElement () {
-    
-  let value =   await sequelize.sync().then(() => {
-    let retorno =  tb_resultados.findOne({ limit: 1, order: [['createdAt', 'DESC']]}).then(leitura=>{ return leitura.dataValues.multiplicador;});
+//Access the database to check the last added element
+async function findLastElement() {
+    let value = await sequelize.sync().then(() => {
+        let retorno = tb_resultados.findOne({ limit: 1, order: [['createdAt', 'DESC']] }).then(leitura => { return leitura.dataValues.multiplicador; });
         return retorno
     })
    
     return value;
 }
 
-// Monta a mensagem dos sinais ativos
-function quaisSinaisAtivos(sinalAtivo){
+//Builds the active signals message
+function quaisSinaisAtivos(sinalAtivo) {
     let msg
     let sts1
     let sts2
     let sts3
     let sts4
 
-    if(sinalAtivo.sinal1){
+    if (sinalAtivo.sinal1) {
         sts1 = '🟢'
-    }else{
+    } else {
         sts1 = '🔴'
     }
-    if(sinalAtivo.sinal2){
+    if (sinalAtivo.sinal2) {
         sts2 = '🟢'
-    }else{
+    } else {
         sts2 = '🔴'
     }
-    if(sinalAtivo.sinal3){
+    if (sinalAtivo.sinal3) {
         sts3 = '🟢'
-    }else{
+    } else {
         sts3 = '🔴'
     }
-    if(sinalAtivo.sinal4){
+    if (sinalAtivo.sinal4) {
         sts4 = '🟢'
-    }else{
+    } else {
         sts4 = '🔴'
     }
-    msg = `<b>SINAIS ATIVOS</b>
-SINAL 1 : `+sts1+`
-SINAL 2 : `+sts2+`
-SINAL 3 : `+sts3+`
-SINAL 4 : `+sts4
+    msg = `<b>ACTIVE SIGNALS</b>
+SIGNAL 1: `+sts1+`
+SIGNAL 2: `+sts2+`
+SIGNAL 3: `+sts3+`
+SIGNAL 4: `+sts4
 
-    return  msg
-
+    return msg
 }
 
-//Envia a mensagem de analise de aposta para o telgram
-async function telegramsendAnalise(){
-    let msg = `🍀<b>AUTO PILOT - ROBÔ</b>🍀
-🚨ATENÇÃO🚨
-🤞POSSÍVEL ENTRADA✈️
-Aguardem confirmação❗️
+//Sends the bet analysis message to Telegram
+async function telegramsendAnalise() {
+    let msg = `🍀<b>AUTO PILOT - ROBOT</b>🍀
+🚨ATTENTION🚨
+🤞POSSIBLE ENTRY✈️
+Wait for confirmation❗️
 LINK🚨➡️ : <a href=\'https://br.betano.com/casino/games/aviator/3337/\'>🔗LINK</a>`;
 
-    let message = await bot.sendMessage(chatId,msg,{parse_mode:'HTML',disable_web_page_preview:true})
+    let message = await bot.sendMessage(chatId, msg, { parse_mode: 'HTML', disable_web_page_preview: true })
 
     return message
 }
 
-//Envia a mensagem de Entrada da aposta dos sinais para o telgram
-async function telegramsendBet(entrada,saida){
-    let entrarapos = entrada+'X'
-    let stop = saida+'X'
-    let msg = `🍀<b>Auto Pilot - Robô</b>🍀
-🚨ENTRADA CONFIRMADA🚨
-Entrar após:`+entrarapos+`
-PARA EM :`+stop+`X
-Caso não de na primeira utilizar 
-Gale✅✅✅
+//Sends the bet entry message to Telegram
+async function telegramsendBet(entrada, saida) {
+    let entrarapos = entrada + 'X'
+    let stop = saida + 'X'
+    let msg = `🍀<b>Auto Pilot - Robot</b>🍀
+🚨CONFIRMED ENTRY🚨
+Enter after:`+entrarapos+`
+STOP AT:`+stop+`X
+If it doesn't hit the first time, use 
+Martingale✅✅✅
 LINK🚨➡️ : <a href=\'https://br.betano.com/casino/games/aviator/3337/\'> <b>(AVIATOR) LINK🚨</b></a>
     `
-    let message = await bot.sendMessage(chatId,msg,{parse_mode:'HTML',disable_web_page_preview:true})
+    let message = await bot.sendMessage(chatId, msg, { parse_mode: 'HTML', disable_web_page_preview: true })
 
     return message
 }
 
-//Envia a mensagem de Green para o telgram
-async function telegramsendGreen(v,sts){  
-    greenStatus=greenStatus+1;
+//Sends the Green message to Telegram
+async function telegramsendGreen(v, sts) {  
+    greenStatus = greenStatus + 1;
     let rawdata = fs.readFileSync('./json/botGratisResultados.json');
     let result = JSON.parse(rawdata);
 
     let statMomentanea = {
         result: true,
-        data : new date().format("DD/MM/YY"),
-        hora : new date().format("HH:mm"),
+        data: new Date().format("DD/MM/YY"),
+        hora: new Date().format("HH:mm"),
         sinal: sts,
         sequencia: v.length
     }
@@ -547,99 +543,97 @@ async function telegramsendGreen(v,sts){
     result.push(statMomentanea)
     gravaJson(result)
 
-    let msg = `🍀<b>Auto Pilot - Robô</b>🍀
+    let msg = `🍀<b>Auto Pilot - Robot</b>🍀
 GREEN🤑🤑🤑
 `+v+`✅✅
-Bateu a meta? Saia do mercado
-E poste no Instagram e marque nossa página➡️ <a href=\'https://www.instagram.com/bot.autopilot/\'> <b>@bot.autopilot</b></a>`
-    
-  await bot.sendMessage(chatId,msg,{parse_mode:'HTML',disable_web_page_preview:true})
 
-   
+
+"Did you hit the target? Get out of the market
+And post on Instagram and tag our page ➡️ <a href='https://www.instagram.com/bot.autopilot/'><b>@bot.autopilot</b></a>`
+
+await bot.sendMessage(chatId, msg, {parse_mode:'HTML', disable_web_page_preview:true})
 
 }
 
-//Envia a mensagem de Red para o telgram
-async function telegramsendRed(v,sts){
+// Sends the Red message to Telegram
+async function telegramsendRed(v, sts) {
     let rawdata = fs.readFileSync('./json/botGratisResultados.json');
     let result = JSON.parse(rawdata);
 
     let statMomentanea = {
         result: false,
-        data : new date().format("DD/MM/YY"),
-        hora : new date().format("HH:mm"),
+        data: new Date().format("DD/MM/YY"),
+        hora: new Date().format("HH:mm"),
         sinal: sts,
         sequencia: v.length
     }
-   
+
     result.push(statMomentanea)
-    
-    gravaJson(result)   
- 
-     let msg = `🍀<b>Auto Pilot - Robô</b>🍀
+
+    gravaJson(result)
+
+    let msg = `🍀<b>Auto Pilot - Bot</b>🍀
  RED 😤😤😤
- `+v+`🔴🔴 
- Não ir além do red, tenha calma com calma vamos longe❗️
- Volte mais tarde✅`
-     bot.sendMessage(chatId,msg,{parse_mode:'HTML',disable_web_page_preview:true})     
+ ${v}🔴🔴 
+ Don't go beyond the red, stay calm, we'll go far❗️
+ Come back later✅`
+    bot.sendMessage(chatId, msg, {parse_mode:'HTML', disable_web_page_preview:true})
 }
 
-//Envia a mensagem de final da aposta para o telgram
-async function telegrambetend(aposta){
-    let msg = `🤖<b>Entrada finalizada</b>🤖
-    Estratégia: Pular fora em`+aposta
-    await bot.sendMessage(chatId,msg,{parse_mode:'HTML'})
+// Sends the final bet message to Telegram
+async function telegrambetend(aposta) {
+    let msg = `🤖<b>Finalized Entry</b>🤖
+    Strategy: Exit at ${aposta}`
+    await bot.sendMessage(chatId, msg, {parse_mode:'HTML'})
+}
 
-} 
-
-//Grava as informações de estatisticas do bot
-async function gravaJson(result){
+// Saves bot statistics information
+async function gravaJson(result) {
     fs.writeFileSync("./json/botGratisResultados.json", JSON.stringify(result), err => {
         // Checking for errors
-        if (err) throw err;        
+        if (err) throw err;
         console.log("Done writing"); // Success
     });
 }
 
-//Cria as informações de estatisticas do bot
-async function botStats(){  
- 
+// Creates bot statistics information
+async function botStats() {
+
     let rawdata = fs.readFileSync('./json/botGratisResultados.json');
     let result = JSON.parse(rawdata);
-    let now = new date()
+    let now = new Date()
     let total = 0;
     let greens = 0;
     let reds = 0;
     let porcentagem = 0;
 
-    result.forEach(object =>{
-        if(object.data === new date().format("DD/MM/YY")){
-            if(object.result){
+    result.forEach(object => {
+        if (object.data === new Date().format("DD/MM/YY")) {
+            if (object.result) {
                 greens = greens + 1;
-            }else{
-                reds = reds +1;
+            } else {
+                reds = reds + 1;
             }
-        }      
+        }
     });
 
-    
-    total = reds+greens;
-    porcentagem  = (greens*100)/total
-    let msg = `🤖<b>Estatisticas do Bot</b>🤖
-    `+
-now.format("DD/MM")+`-`+now.format("HH:mm")+` 
-TOTAL DE JOGADAS : `+total+`
-RESULTADOS: `+greens+` GREEN✅ x `+reds+` RED🔴
-PORCENTAGEM DE ACERTO: `+porcentagem.toFixed(2)+`%`
 
-   return msg
-} 
+    total = reds + greens;
+    porcentagem = (greens * 100) / total
+    let msg = `🤖<b>Bot Statistics</b>🤖
+    ${now.format("DD/MM")}-${now.format("HH:mm")}
+TOTAL BETS: ${total}
+RESULTS: ${greens} GREEN✅ x ${reds} RED🔴
+ACCURACY RATE: ${porcentagem.toFixed(2)}%`
 
-//Remove um numero X de elementos das primeiras posições da fila
-function analiserClear(array,pos){
-   
-    for(let i=0; i<pos;i++){
-        array.splice(0,1)
-    }   
+    return msg
+}
+
+// Removes a number X of elements from the beginning of the queue
+function analiserClear(array, pos) {
+
+    for (let i = 0; i < pos; i++) {
+        array.splice(0, 1)
+    }
     return array
 }
