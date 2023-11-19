@@ -165,7 +165,6 @@ async function senderSignal(value) {
   if (greenStatus >= SIGNALS_PER_HOUR) {
     console.log('Stop BotSure! Here's the translated code with the comments in English:
 
-```javascript
 const TelegramBot = require('node-telegram-bot-api');
 const { Sequelize, DataTypes } = require('sequelize');
 const nodeSchedule = require('node-schedule');
@@ -330,119 +329,8 @@ async function senderSignal(value) {
         greenStatus=0;
         stopBot()
     }
-Translated code:
 
-```javascript
-if (redAlert && rounds < ALERT_ROUNDS) {
-    console.log('RED ALERT ACTIVE: ' + rounds);
-    rounds = rounds + 1;
-} else if (redAlert && rounds === ALERT_ROUNDS) {
-    console.log('RED ALERT OFF!');
-    redAlert = false;
-    rounds = 0;
-}
 
-if (activeSignal.signal1 && !redAlert) {
-    analyzer1.push(tester);
-    signal1();
-}
-
-if (activeSignal.signal2 && !redAlert) {
-    analyzer2.push(tester);
-    signal2();
-}
-
-//[SIGNAL 2 PATTERN]
-/*
-1st Low
-2nd Low -> Analyze
-3rd Low -> Entry
-4th High -> Green or Gale
-5th High -> Green or Gale
-6th High -> Green or Red
-*/
-
-async function signal1() {
-    if (analyzer1.length === 2) {
-        if ((analyzer1[0] < 2.00) && (analyzer1[1] < 2.00)) { //LOW
-            console.log('Analyzing Signal 1...');
-            console.log(analyzer1);
-            signalMessage = await telegramsendAnalysis();
-            return true;
-        } else {
-            console.log('---------------------------------------');
-            console.log('Pattern 1 not found');
-            console.log('---------------------------------------');
-            analyzer1 = clearAnalyzer(analyzer1, 1);
-            return true;
-        }
-    } else if (analyzer1.length === 3) {
-        if (analyzer1[2] < 2.00) { //LOW
-            console.log('Enter bet: Exit at 1.50x');
-            await bot.deleteMessage(chatId, signalMessage.message_id);
-            betMessage = await telegramsendBet(analyzer1[analyzer1.length - 1], '1.50');
-            console.log(analyzer1);
-            return true;
-        } else {
-            await bot.deleteMessage(chatId, signalMessage.message_id);
-            console.log('---------------------------------------');
-            console.log('Pattern 1 not found');
-            console.log('---------------------------------------');
-            analyzer1 = clearAnalyzer(analyzer1, analyzer1.length - 1);
-            return true;
-        }
-    } else if (analyzer1.length === 4) {
-        if (analyzer1[3] > 1.50) {
-            await bot.deleteMessage(chatId, betMessage.message_id);
-            await telegrambetend('1.50X');
-            await telegramsendGreen(analyzer1[analyzer1.length - 1] + 'X', 'Signal 1');
-            console.log("Green 1 (SIGNAL1) ....");
-            analyzer1 = clearAnalyzer(analyzer1, analyzer1.length - 1);
-            console.log(analyzer1);
-            return true;
-        } else {
-            console.log('GALE 1 (SIGNAL1)');
-            return true;
-        }
-    } else if (analyzer1.length === 5) {
-        if (analyzer1[analyzer1.length - 1] > 1.50) {
-            await bot.deleteMessage(chatId, betMessage.message_id);
-            await telegrambetend('1.50X');
-            await telegramsendGreen([analyzer1[analyzer1.length - 2] + 'X', analyzer1[analyzer1.length - 1] + 'X'], 'Signal 1');
-            console.log("Green 2(SIGNAL1)....");
-            analyzer1 = clearAnalyzer(analyzer1, analyzer1.length - 1);
-            console.log(analyzer1);
-            return true;
-        } else {
-            console.log('GALE 2 (SIGNAL1)');
-            return true;
-        }
-    } if (analyzer1.length === 6) {
-        let finalResult = [analyzer1[analyzer1.length - 3] + 'X', analyzer1[analyzer1.length - 2] + 'X', analyzer1[analyzer1.length - 1] + 'X'];
-        if (analyzer1[analyzer1.length - 1] > 1.50) {
-            await bot.deleteMessage(chatId, betMessage.message_id);
-            await telegrambetend('1.50X');
-            await telegramsendGreen(finalResult, 'Signal 1');
-            console.log("Green 3 (SIGNAL1) ....");
-            analyzer1 = clearAnalyzer(analyzer1, analyzer1.length - 1);
-            console.log(analyzer1);
-            return true;
-        } else {
-            await bot.deleteMessage(chatId, betMessage.message_id);
-            await telegrambetend('1.50X');
-            await telegramsendRed(finalResult, 'Signal 1');
-            console.log("RED ...");
-            redAlert = true;
-            analyzer1 = clearAnalyzer(analyzer1, analyzer1.length);
-            console.log(analyzer1);
-            return true;
-        }
-
-    }
-}
-The provided code appears to be written in JavaScript. It contains a series of conditional statements and a function called `sinal1()`. Here's the translation of the code:
-
-```javascript
 if (redAlert && rounds < RODADAS_REDALERT) {
     console.log('RED ALERT ACTIVE: ' + rounds);
     rounds = rounds + 1;
