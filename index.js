@@ -163,7 +163,7 @@ async function senderSignal(value) {
   console.log(tester);
 
   if (greenStatus >= SIGNALS_PER_HOUR) {
-    console.log('Stop BotSure! Here's the translated code with the comments in English:
+    console.log('Stop Bot')
 
 const TelegramBot = require('node-telegram-bot-api');
 const { Sequelize, DataTypes } = require('sequelize');
