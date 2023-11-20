@@ -198,14 +198,14 @@ async function senderSignal(valor){
     }
     
 //[PADRÃO SINAL 2]
-/*
+
 1° Baixo
 2° Baixo -> Analisa
 3° Baixo -> Entrada
 4° Alto -> Green ou Gale
 5° Alto -> Green ou Gale
 6° Alto -> Green ou Red
-*/
+
 
    async function sinal1(){
         if(analiser1.length === 2){
@@ -287,7 +287,7 @@ async function senderSignal(valor){
    }
 
 //[PADRÃO SINAL 2]
-/*      
+
  1° Alto
  2° Baixo
  3° Baixo
@@ -297,7 +297,7 @@ async function senderSignal(valor){
  7° Alto <- Green ou Gale
  8° Alto <- Green ou Gale
  9° Alto <- Green ou Red
-*/
+
    async function sinal2(){
     if(analiser2.length === 5){
                  //Alto                      baixo               baixo                   alto                    baixo
